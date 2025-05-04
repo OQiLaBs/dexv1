@@ -1,1 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal DEX</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 20px;
+        }
+        .card {
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            background-color: #0d6efd;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .nav-tabs .nav-link.active {
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        .token-select {
+            display: flex;
+            align-items: center;
+        }
+        .token-select select {
+            margin-left: 10px;
+        }
+        .tab-content {
+            padding: 20px;
+            border-left: 1px solid #dee2e6;
+            border-right: 1px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 0 0 10px 10px;
+            background-color: white;
+        }
+        .connect-wallet {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button id="connectWallet" class="btn btn-primary connect-wallet">
+            <i class="fas fa-wallet"></i> Connect Wallet
+        </button>
+        
+        <h1 class="text-center mb-4">Universal DEX</h1>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="dexTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="swap-tab" data-bs-toggle="tab" data-bs-target="#swap" type="button" role="tab">Swap</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="add-liquidity-tab" data-bs-toggle="tab" data-bs-target="#add-liquidity" type="button" role="tab">Add Liquidity</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="remove-liquidity-tab" data-bs-toggle="tab" data-bs-target="#remove-liquidity" type="button" role="tab">Remove Liquidity</button>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="tab-content" id="dexTabsContent">
+                        <!-- Swap Tab -->
+                        <div class="tab-pane fade show active" id="swap" role="tabpanel">
+                            <div class="mb-3">
+                                <label class="form-label">From</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="swapAmountIn" placeholder="0.0">
+                                    <select class="form-select" id="swapTokenIn">
+                                        <option value="0x0">Select Token</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center my-3">
+                                <button class="btn btn-outline-secondary" id="swapDirection">
+                                    <i class="fas fa-arrow-down"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">To</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="swapAmountOut" placeholder="0.0" readonly>
+                                    <select class="form-select" id="swapTokenOut">
+                                        <option value="0x0">Select Token</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Price</label>
+                                <div id="swapPrice" class="form-control bg-light">-</div>
+                            </div>
+                            
+                            <button id="btnSwap" class="btn btn-primary w-100" disabled>Swap</button>
+                        </div>
+                        
+                        <!-- Add Liquidity Tab -->
+                        <div class="tab-pane fade" id="add-liquidity" role="tabpanel">
+                            <div class="mb-3">
+                                <label class="form-label">Token A</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="addAmountA" placeholder="0.0">
+                                    <select class="form-select" id="addTokenA">
+                                        <option value="0x0">Select Token</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center my-3">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Token B</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="addAmountB" placeholder="0.0">
+                                    <select class="form-select" id="addTokenB">
+                                        <option value="0x0">Select Token</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Pool Share</label>
+                                <div id="addPoolShare" class="form-control bg-light">-</div>
+                            </div>
+                            
+                            <button id="btnAddLiquidity" class="btn btn-primary w-100" disabled>Add Liquidity</button>
+                        </div>
+                        
+                        <!-- Remove Liquidity Tab -->
+                        <div class="tab-pane fade" id="remove-liquidity" role="tabpanel">
+                            <div class="mb-3">
+                                <label class="form-label">Token A</label>
+                                <select class="form-select" id="removeTokenA">
+                                    <option value="0x0">Select Token</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Token B</label>
+                                <select class="form-select" id="removeTokenB">
+                                    <option value="0x0">Select Token</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Liquidity Amount</label>
+                                <input type="number" class="form-control" id="removeLiquidityAmount" placeholder="0.0">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">You will receive</label>
+                                <div id="removeAmounts" class="form-control bg-light">-</div>
+                            </div>
+                            
+                            <button id="btnRemoveLiquidity" class="btn btn-primary w-100" disabled>Remove Liquidity</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Transaction Status Modal -->
+        <div class="modal fade" id="txStatusModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="txStatusTitle">Transaction Status</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="txStatusBody">
+                        Processing transaction...
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <a href="#" id="txLink" class="btn btn-primary" target="_blank" style="display: none;">View on Explorer</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Ethers.js -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js" type="application/javascript"></script>
+    
+    <script>
+        // Contract ABI - Simplified version of your contract's ABI
+        const contractABI = [
+            {
+                "inputs": [{"internalType": "address", "name": "_feeCollector", "type": "address"}],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+                    {"indexed": false, "internalType": "address", "name": "tokenA", "type": "address"},
+                    {"indexed": false, "internalType": "address", "name": "tokenB", "type": "address"},
+                    {"indexed": false, "internalType": "uint256", "name": "amountA", "type": "uint256"},
+                    {"indexed": false, "internalType": "uint256", "name": "amountB", "type": "uint256"},
+                    {"indexed": false, "internalType": "uint256", "name": "feeA", "type": "uint256"},
+                    {"indexed": false, "internalType": "uint256", "name": "feeB", "type": "uint256"}
+                ],
+                "name": "LiquidityAdded",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+                    {"indexed": false, "internalType": "address", "name": "tokenA", "type": "address"},
+                    {"indexed": false, "internalType": "address", "name": "tokenB", "type": "address"},
+                    {"indexed": false, "internalType": "uint256", "name": "amountA", "type": "uint256"},
+                    {"indexed": false, "internalType": "uint256", "name": "amountB", "type": "uint256"}
+                ],
+                "name": "LiquidityRemoved",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+                    {"indexed": false, "internalType": "address", "name": "tokenIn", "type": "address"},
+                    {"indexed": false, "internalType": "uint256", "name": "amountIn", "type": "uint256"},
+                    {"indexed": false, "internalType": "address", "name": "tokenOut", "type": "address"},
+                    {"indexed": false, "internalType": "uint256", "name": "amountOut", "type": "uint256"},
+                    {"indexed": false, "internalType": "uint256", "name": "fee", "type": "uint256"}
+                ],
+                "name": "TokenSwapped",
+                "type": "event"
+            },
+            {
+                "inputs": [
+                    {"internalType": "address", "name": "tokenA", "type": "address"},
+                    {"internalType": "address", "name": "tokenB", "type": "address"},
+                    {"internalType": "uint256", "name": "amountA", "type": "uint256"},
+                    {"internalType": "uint256", "name": "amountB", "type": "uint256"}
+                ],
+                "name": "addLiquidity",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "feeCollector",
+                "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "address", "name": "tokenA", "type": "address"},
+                    {"internalType": "address", "name": "tokenB", "type": "address"}
+                ],
+                "name": "getReserves",
+                "outputs": [
+                    {"internalType": "uint256", "name": "", "type": "uint256"},
+                    {"internalType": "uint256", "name": "", "type": "uint256"}
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+                "name": "liquidity",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "address", "name": "tokenA", "type": "address"},
+                    {"internalType": "address", "name": "tokenB", "type": "address"},
+                    {"internalType": "uint256", "name": "liquidityAmount", "type": "uint256"}
+                ],
+                "name": "removeLiquidity",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "address", "name": "", "type": "address"},
+                    {"internalType": "address", "name": "", "type": "address"}
+                ],
+                "name": "reserves",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "address", "name": "tokenIn", "type": "address"},
+                    {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
+                    {"internalType": "address", "name": "tokenOut", "type": "address"}
+                ],
+                "name": "swap",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+
+        // ERC20 ABI - Simplified for balanceOf and approve functions
+        const erc20ABI = [
+            {
+                "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
+                "name": "balanceOf",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "address", "name": "spender", "type": "address"},
+                    {"internalType": "uint256", "name": "amount", "type": "uint256"}
+                ],
+                "name": "approve",
+                "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "decimals",
+                "outputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "symbol",
+                "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        // Configuration
+        const config = {
+            contractAddress: "0xYOUR_CONTRACT_ADDRESS", // Replace with your contract address
+            chainId: "0x5", // Goerli testnet (change as needed)
+            rpcUrl: "https://goerli.infura.io/v3/YOUR_INFURA_KEY", // Replace with your RPC URL
+            explorerUrl: "https://goerli.etherscan.io" // Replace with your explorer URL
+        };
+
+        // Global variables
+        let provider;
+        let signer;
+        let dexContract;
+        let connectedAddress;
+        let tokenList = [
+            { address: "0xTOKEN1", symbol: "TOKEN1", decimals: 18 },
+            { address: "0xTOKEN2", symbol: "TOKEN2", decimals: 18 },
+            { address: "0xTOKEN3", symbol: "TOKEN3", decimals: 18 }
+            // Add more tokens as needed
+        ];
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize ethers provider
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            
+            // Initialize contract
+            dexContract = new ethers.Contract(config.contractAddress, contractABI, provider);
+            
+            // Populate token dropdowns
+            populateTokenDropdowns();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Check if wallet is already connected
+            checkConnectedWallet();
+        });
+
+        // Populate all token dropdowns
+        function populateTokenDropdowns() {
+            const dropdowns = [
+                'swapTokenIn', 'swapTokenOut', 
+                'addTokenA', 'addTokenB', 
+                'removeTokenA', 'removeTokenB'
+            ];
+            
+            dropdowns.forEach(dropdownId => {
+                const dropdown = document.getElementById(dropdownId);
+                dropdown.innerHTML = '<option value="0x0">Select Token</option>';
+                
+                tokenList.forEach(token => {
+                    const option = document.createElement('option');
+                    option.value = token.address;
+                    option.textContent = token.symbol;
+                    dropdown.appendChild(option);
+                });
+            });
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // Connect wallet button
+            document.getElementById('connectWallet').addEventListener('click', connectWallet);
+            
+            // Swap tab
+            document.getElementById('swapAmountIn').addEventListener('input', calculateSwapOut);
+            document.getElementById('swapTokenIn').addEventListener('change', calculateSwapOut);
+            document.getElementById('swapTokenOut').addEventListener('change', calculateSwapOut);
+            document.getElementById('swapDirection').addEventListener('click', swapDirection);
+            document.getElementById('btnSwap').addEventListener('click', executeSwap);
+            
+            // Add liquidity tab
+            document.getElementById('addAmountA').addEventListener('input', calculateAddLiquidity);
+            document.getElementById('addAmountB').addEventListener('input', calculateAddLiquidity);
+            document.getElementById('addTokenA').addEventListener('change', calculateAddLiquidity);
+            document.getElementById('addTokenB').addEventListener('change', calculateAddLiquidity);
+            document.getElementById('btnAddLiquidity').addEventListener('click', executeAddLiquidity);
+            
+            // Remove liquidity tab
+            document.getElementById('removeTokenA').addEventListener('change', updateRemoveLiquidity);
+            document.getElementById('removeTokenB').addEventListener('change', updateRemoveLiquidity);
+            document.getElementById('removeLiquidityAmount').addEventListener('input', updateRemoveLiquidity);
+            document.getElementById('btnRemoveLiquidity').addEventListener('click', executeRemoveLiquidity);
+        }
+
+        // Check if wallet is already connected
+        async function checkConnectedWallet() {
+            if (window.ethereum && window.ethereum.selectedAddress) {
+                connectedAddress = window.ethereum.selectedAddress;
+                updateUIAfterConnection();
+            }
+        }
+
+        // Connect wallet
+        async function connectWallet() {
+            try {
+                // Request account access
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // Get signer
+                signer = provider.getSigner();
+                connectedAddress = await signer.getAddress();
+                
+                // Update UI
+                updateUIAfterConnection();
+                
+                // Update contract with signer
+                dexContract = dexContract.connect(signer);
+                
+                // Listen for account changes
+                window.ethereum.on('accountsChanged', (accounts) => {
+                    if (accounts.length === 0) {
+                        // Wallet disconnected
+                        location.reload();
+                    } else {
+                        // Account changed
+                        connectedAddress = accounts[0];
+                        signer = provider.getSigner();
+                        dexContract = dexContract.connect(signer);
+                    }
+                });
+                
+                // Listen for chain changes
+                window.ethereum.on('chainChanged', () => {
+                    location.reload();
+                });
+                
+            } catch (error) {
+                console.error("Error connecting wallet:", error);
+                showTxStatus("Error", "Failed to connect wallet: " + error.message);
+            }
+        }
+
+        // Update UI after wallet connection
+        function updateUIAfterConnection() {
+            const connectBtn = document.getElementById('connectWallet');
+            connectBtn.innerHTML = `<i class="fas fa-wallet"></i> ${connectedAddress.substring(0, 6)}...${connectedAddress.substring(38)}`;
+            connectBtn.classList.remove('btn-primary');
+            connectBtn.classList.add('btn-success');
+            
+            // Enable buttons that require wallet connection
+            document.getElementById('btnSwap').disabled = false;
+            document.getElementById('btnAddLiquidity').disabled = false;
+            document.getElementById('btnRemoveLiquidity').disabled = false;
+            
+            // Update any user-specific data
+            updateRemoveLiquidity();
+        }
+
+        // Swap direction button
+        function swapDirection() {
+            const tokenIn = document.getElementById('swapTokenIn');
+            const tokenOut = document.getElementById('swapTokenOut');
+            const amountIn = document.getElementById('swapAmountIn');
+            const amountOut = document.getElementById('swapAmountOut');
+            
+            // Swap tokens
+            const tempToken = tokenIn.value;
+            tokenIn.value = tokenOut.value;
+            tokenOut.value = tempToken;
+            
+            // Swap amounts if there's a calculated output
+            if (amountOut.value && amountOut.value !== '0.0') {
+                const tempAmount = amountIn.value;
+                amountIn.value = amountOut.value;
+                amountOut.value = tempAmount;
+            } else {
+                amountIn.value = '';
+                amountOut.value = '';
+            }
+            
+            // Recalculate
+            calculateSwapOut();
+        }
+
+        // Calculate swap output amount
+        async function calculateSwapOut() {
+            const tokenIn = document.getElementById('swapTokenIn').value;
+            const tokenOut = document.getElementById('swapTokenOut').value;
+            const amountIn = document.getElementById('swapAmountIn').value;
+            const amountOut = document.getElementById('swapAmountOut');
+            const priceDisplay = document.getElementById('swapPrice');
+            
+            // Reset if invalid inputs
+            if (tokenIn === '0x0' || tokenOut === '0x0' || !amountIn || parseFloat(amountIn) <= 0) {
+                amountOut.value = '';
+                priceDisplay.textContent = '-';
+                return;
+            }
+            
+            try {
+                // Get reserves
+                const [reserveIn, reserveOut] = await dexContract.getReserves(tokenIn, tokenOut);
+                
+                // Calculate output amount (simplified - actual contract has fee)
+                const amountInWei = ethers.utils.parseUnits(amountIn, 18); // Assuming 18 decimals for simplicity
+                const fee = amountInWei.mul(2).div(10000); // 0.02% fee
+                const amountInWithFee = amountInWei.sub(fee);
+                
+                const numerator = amountInWithFee.mul(reserveOut);
+                const denominator = reserveIn.add(amountInWithFee);
+                const amountOutWei = numerator.div(denominator);
+                
+                // Convert back to human-readable
+                const amountOutHuman = ethers.utils.formatUnits(amountOutWei, 18);
+                amountOut.value = parseFloat(amountOutHuman).toFixed(6);
+                
+                // Calculate and display price
+                const price = parseFloat(amountIn) / parseFloat(amountOutHuman);
+                priceDisplay.textContent = `1 ${getTokenSymbol(tokenOut)} = ${price.toFixed(6)} ${getTokenSymbol(tokenIn)}`;
+                
+            } catch (error) {
+                console.error("Error calculating swap:", error);
+                amountOut.value = '';
+                priceDisplay.textContent = '-';
+            }
+        }
+
+        // Execute swap
+        async function executeSwap() {
+            const tokenIn = document.getElementById('swapTokenIn').value;
+            const tokenOut = document.getElementById('swapTokenOut').value;
+            const amountIn = document.getElementById('swapAmountIn').value;
+            
+            if (tokenIn === '0x0' || tokenOut === '0x0' || !amountIn || parseFloat(amountIn) <= 0) {
+                showTxStatus("Error", "Invalid swap parameters");
+                return;
+            }
+            
+            try {
+                const amountInWei = ethers.utils.parseUnits(amountIn, 18); // Assuming 18 decimals
+                
+                // Show processing modal
+                const modal = new bootstrap.Modal(document.getElementById('txStatusModal'));
+                document.getElementById('txStatusTitle').textContent = "Processing Swap";
+                document.getElementById('txStatusBody').textContent = "Please wait while we process your swap...";
+                document.getElementById('txLink').style.display = 'none';
+                modal.show();
+                
+                // Approve token spending if needed (simplified)
+                // In a real app, you'd need to check allowance first
+                
+                // Execute swap
+                const tx = await dexContract.swap(tokenIn, amountInWei, tokenOut);
+                
+                // Update modal with tx hash
+                document.getElementById('txStatusBody').innerHTML = `
+                    Swap submitted!<br>
+                    Transaction hash: ${tx.hash}<br>
+                    Waiting for confirmation...
+                `;
+                document.getElementById('txLink').href = `${config.explorerUrl}/tx/${tx.hash}`;
+                document.getElementById('txLink').style.display = 'inline-block';
+                
+                // Wait for confirmation
+                const receipt = await tx.wait();
+                
+                // Update modal with success
+                document.getElementById('txStatusBody').innerHTML = `
+                    Swap successful!<br>
+                    Transaction hash: <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash}</a>
+                `;
+                
+                // Reset form
+                document.getElementById('swapAmountIn').value = '';
+                document.getElementById('swapAmountOut').value = '';
+                
+            } catch (error) {
+                console.error("Error executing swap:", error);
+                showTxStatus("Error", "Swap failed: " + error.message);
+            }
+        }
+
+        // Calculate add liquidity amounts
+        async function calculateAddLiquidity() {
+            const tokenA = document.getElementById('addTokenA').value;
+            const tokenB = document.getElementById('addTokenB').value;
+            const amountA = document.getElementById('addAmountA').value;
+            const amountB = document.getElementById('addAmountB').value;
+            const poolShareDisplay = document.getElementById('addPoolShare');
+            
+            // Reset if invalid inputs
+            if (tokenA === '0x0' || tokenB === '0x0' || tokenA === tokenB) {
+                poolShareDisplay.textContent = '-';
+                return;
+            }
+            
+            try {
+                // Get reserves
+                const [reserveA, reserveB] = await dexContract.getReserves(tokenA, tokenB);
+                
+                if (reserveA.isZero() && reserveB.isZero()) {
+                    // New pool - share will be 100%
+                    if (amountA && amountB && parseFloat(amountA) > 0 && parseFloat(amountB) > 0) {
+                        poolShareDisplay.textContent = "100% (New pool)";
+                    } else {
+                        poolShareDisplay.textContent = '-';
+                    }
+                } else {
+                    // Existing pool - calculate share based on inputs
+                    if (amountA && parseFloat(amountA) > 0) {
+                        const amountAWei = ethers.utils.parseUnits(amountA, 18);
+                        const share = amountAWei.mul(100).div(reserveA.add(amountAWei));
+                        poolShareDisplay.textContent = `${share.toString()}% of pool`;
+                    } else if (amountB && parseFloat(amountB) > 0) {
+                        const amountBWei = ethers.utils.parseUnits(amountB, 18);
+                        const share = amountBWei.mul(100).div(reserveB.add(amountBWei));
+                        poolShareDisplay.textContent = `${share.toString()}% of pool`;
+                    } else {
+                        poolShareDisplay.textContent = '-';
+                    }
+                }
+                
+            } catch (error) {
+                console.error("Error calculating liquidity:", error);
+                poolShareDisplay.textContent = '-';
+            }
+        }
+
+        // Execute add liquidity
+        async function executeAddLiquidity() {
+            const tokenA = document.getElementById('addTokenA').value;
+            const tokenB = document.getElementById('addTokenB').value;
+            const amountA = document.getElementById('addAmountA').value;
+            const amountB = document.getElementById('addAmountB').value;
+            
+            if (tokenA === '0x0' || tokenB === '0x0' || tokenA === tokenB || 
+                !amountA || parseFloat(amountA) <= 0 || !amountB || parseFloat(amountB) <= 0) {
+                showTxStatus("Error", "Invalid liquidity parameters");
+                return;
+            }
+            
+            try {
+                const amountAWei = ethers.utils.parseUnits(amountA, 18);
+                const amountBWei = ethers.utils.parseUnits(amountB, 18);
+                
+                // Show processing modal
+                const modal = new bootstrap.Modal(document.getElementById('txStatusModal'));
+                document.getElementById('txStatusTitle').textContent = "Adding Liquidity";
+                document.getElementById('txStatusBody').textContent = "Please wait while we add your liquidity...";
+                document.getElementById('txLink').style.display = 'none';
+                modal.show();
+                
+                // Approve token spending if needed (simplified)
+                // In a real app, you'd need to check allowance first
+                
+                // Add liquidity
+                const tx = await dexContract.addLiquidity(tokenA, tokenB, amountAWei, amountBWei);
+                
+                // Update modal with tx hash
+                document.getElementById('txStatusBody').innerHTML = `
+                    Liquidity addition submitted!<br>
+                    Transaction hash: ${tx.hash}<br>
+                    Waiting for confirmation...
+                `;
+                document.getElementById('txLink').href = `${config.explorerUrl}/tx/${tx.hash}`;
+                document.getElementById('txLink').style.display = 'inline-block';
+                
+                // Wait for confirmation
+                const receipt = await tx.wait();
+                
+                // Update modal with success
+                document.getElementById('txStatusBody').innerHTML = `
+                    Liquidity added successfully!<br>
+                    Transaction hash: <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash}</a>
+                `;
+                
+                // Reset form
+                document.getElementById('addAmountA').value = '';
+                document.getElementById('addAmountB').value = '';
+                document.getElementById('addPoolShare').textContent = '-';
+                
+            } catch (error) {
+                console.error("Error adding liquidity:", error);
+                showTxStatus("Error", "Failed to add liquidity: " + error.message);
+            }
+        }
+
+        // Update remove liquidity information
+        async function updateRemoveLiquidity() {
+            const tokenA = document.getElementById('removeTokenA').value;
+            const tokenB = document.getElementById('removeTokenB').value;
+            const liquidityAmount = document.getElementById('removeLiquidityAmount').value;
+            const amountsDisplay = document.getElementById('removeAmounts');
+            
+            // Reset if invalid inputs
+            if (tokenA === '0x0' || tokenB === '0x0' || tokenA === tokenB) {
+                amountsDisplay.textContent = '-';
+                return;
+            }
+            
+            try {
+                // Get user's liquidity balance
+                const userLiquidity = await dexContract.liquidity(connectedAddress);
+                
+                // Get reserves
+                const [reserveA, reserveB] = await dexContract.getReserves(tokenA, tokenB);
+                const totalLiquidity = reserveA.add(reserveB);
+                
+                if (totalLiquidity.isZero()) {
+                    amountsDisplay.textContent = 'No liquidity in this pool';
+                    return;
+                }
+                
+                // Calculate amounts to receive
+                let amountA, amountB;
+                if (liquidityAmount && parseFloat(liquidityAmount) > 0) {
+                    const liquidityAmountWei = ethers.utils.parseUnits(liquidityAmount, 18);
+                    amountA = liquidityAmountWei.mul(reserveA).div(totalLiquidity);
+                    amountB = liquidityAmountWei.mul(reserveB).div(totalLiquidity);
+                    
+                    amountsDisplay.textContent = `
+                        ${ethers.utils.formatUnits(amountA, 18)} ${getTokenSymbol(tokenA)} and 
+                        ${ethers.utils.formatUnits(amountB, 18)} ${getTokenSymbol(tokenB)}
+                    `;
+                } else {
+                    amountsDisplay.textContent = 'Enter liquidity amount to remove';
+                }
+                
+            } catch (error) {
+                console.error("Error updating remove liquidity:", error);
+                amountsDisplay.textContent = '-';
+            }
+        }
+
+        // Execute remove liquidity
+        async function executeRemoveLiquidity() {
+            const tokenA = document.getElementById('removeTokenA').value;
+            const tokenB = document.getElementById('removeTokenB').value;
+            const liquidityAmount = document.getElementById('removeLiquidityAmount').value;
+            
+            if (tokenA === '0x0' || tokenB === '0x0' || tokenA === tokenB || 
+                !liquidityAmount || parseFloat(liquidityAmount) <= 0) {
+                showTxStatus("Error", "Invalid liquidity removal parameters");
+                return;
+            }
+            
+            try {
+                const liquidityAmountWei = ethers.utils.parseUnits(liquidityAmount, 18);
+                
+                // Show processing modal
+                const modal = new bootstrap.Modal(document.getElementById('txStatusModal'));
+                document.getElementById('txStatusTitle').textContent = "Removing Liquidity";
+                document.getElementById('txStatusBody').textContent = "Please wait while we remove your liquidity...";
+                document.getElementById('txLink').style.display = 'none';
+                modal.show();
+                
+                // Remove liquidity
+                const tx = await dexContract.removeLiquidity(tokenA, tokenB, liquidityAmountWei);
+                
+                // Update modal with tx hash
+                document.getElementById('txStatusBody').innerHTML = `
+                    Liquidity removal submitted!<br>
+                    Transaction hash: ${tx.hash}<br>
+                    Waiting for confirmation...
+                `;
+                document.getElementById('txLink').href = `${config.explorerUrl}/tx/${tx.hash}`;
+                document.getElementById('txLink').style.display = 'inline-block';
+                
+                // Wait for confirmation
+                const receipt = await tx.wait();
+                
+                // Update modal with success
+                document.getElementById('txStatusBody').innerHTML = `
+                    Liquidity removed successfully!<br>
+                    Transaction hash: <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash}</a>
+                `;
+                
+                // Reset form
+                document.getElementById('removeLiquidityAmount').value = '';
+                document.getElementById('removeAmounts').textContent = '-';
+                
+            } catch (error) {
+                console.error("Error removing liquidity:", error);
+                showTxStatus("Error", "Failed to remove liquidity: " + error.message);
+            }
+        }
+
+        // Helper function to get token symbol
+        function getTokenSymbol(address) {
+            const token = tokenList.find(t => t.address === address);
+            return token ? token.symbol : '???';
+        }
+
+        // Show transaction status
+        function showTxStatus(title, message) {
+            const modal = new bootstrap.Modal(document.getElementById('txStatusModal'));
+            document.getElementById('txStatusTitle').textContent = title;
+            document.getElementById('txStatusBody').textContent = message;
+            document.getElementById('txLink').style.display = 'none';
+            modal.show();
+        }
+    </script>
+</body>
+</html>
