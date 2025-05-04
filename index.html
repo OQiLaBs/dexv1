@@ -558,8 +558,17 @@
             }
             
             try {
-                // Get reserves
-                const [reserveIn, reserveOut] = await dexContract.getReserves(tokenIn, tokenOut);
+              try {
+        // Get token decimals
+        const tokenInInfo = tokenList.find(t => t.address === tokenIn);
+        const tokenOutInfo = tokenList.find(t => t.address === tokenOut);
+        
+        const amountInWei = ethers.utils.parseUnits(amountIn, tokenInInfo.decimals);
+        // ... rest of the calculation using correct decimals
+    } catch (error) {
+        // ... error handling
+    }
+}
                 
                 // Calculate output amount (simplified - actual contract has fee)
                 const amountInWei = ethers.utils.parseUnits(amountIn, 18); // Assuming 18 decimals for simplicity
@@ -687,63 +696,74 @@
         }
 
         // Execute add liquidity
-        async function executeAddLiquidity() {
-            const tokenA = document.getElementById('addTokenA').value;
-            const tokenB = document.getElementById('addTokenB').value;
-            const amountA = document.getElementById('addAmountA').value;
-            const amountB = document.getElementById('addAmountB').value;
-            
-            if (tokenA === '0x0' || tokenB === '0x0' || tokenA === tokenB || 
-                !amountA || parseFloat(amountA) <= 0 || !amountB || parseFloat(amountB) <= 0) {
-                showTxStatus("Error", "Invalid liquidity parameters");
-                return;
-            }
-            
-            try {
-                const amountAWei = ethers.utils.parseUnits(amountA, 18);
-                const amountBWei = ethers.utils.parseUnits(amountB, 18);
-                
-                // Show processing modal
-                const modal = new bootstrap.Modal(document.getElementById('txStatusModal'));
-                document.getElementById('txStatusTitle').textContent = "Adding Liquidity";
-                document.getElementById('txStatusBody').textContent = "Please wait while we add your liquidity...";
-                document.getElementById('txLink').style.display = 'none';
-                modal.show();
-                
-                // Approve token spending if needed (simplified)
-                // In a real app, you'd need to check allowance first
-                
-                // Add liquidity
-                const tx = await dexContract.addLiquidity(tokenA, tokenB, amountAWei, amountBWei);
-                
-                // Update modal with tx hash
-                document.getElementById('txStatusBody').innerHTML = `
-                    Liquidity addition submitted!<br>
-                    Transaction hash: ${tx.hash}<br>
-                    Waiting for confirmation...
-                `;
-                document.getElementById('txLink').href = `${config.explorerUrl}/tx/${tx.hash}`;
-                document.getElementById('txLink').style.display = 'inline-block';
-                
-                // Wait for confirmation
-                const receipt = await tx.wait();
-                
-                // Update modal with success
-                document.getElementById('txStatusBody').innerHTML = `
-                    Liquidity added successfully!<br>
-                    Transaction hash: <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash}</a>
-                `;
-                
-                // Reset form
-                document.getElementById('addAmountA').value = '';
-                document.getElementById('addAmountB').value = '';
-                document.getElementById('addPoolShare').textContent = '-';
-                
-            } catch (error) {
-                console.error("Error adding liquidity:", error);
-                showTxStatus("Error", "Failed to add liquidity: " + error.message);
-            }
-        }
+       async function executeAddLiquidity() {
+    const tokenA = document.getElementById('addTokenA').value;
+    const tokenB = document.getElementById('addTokenB').value;
+    const amountA = document.getElementById('addAmountA').value;
+    const amountB = document.getElementById('addAmountB').value;
+    
+    if (tokenA === '0x0' || tokenB === '0x0' || tokenA === tokenB || 
+        !amountA || parseFloat(amountA) <= 0 || !amountB || parseFloat(amountB) <= 0) {
+        showTxStatus("Error", "Invalid liquidity parameters");
+        return;
+    }
+    
+    try {
+        // Get token decimals
+        const tokenAInfo = tokenList.find(t => t.address === tokenA);
+        const tokenBInfo = tokenList.find(t => t.address === tokenB);
+        
+        const amountAWei = ethers.utils.parseUnits(amountA, tokenAInfo.decimals);
+        const amountBWei = ethers.utils.parseUnits(amountB, tokenBInfo.decimals);
+        
+        // Show processing modal
+        const modal = new bootstrap.Modal(document.getElementById('txStatusModal'));
+        document.getElementById('txStatusTitle').textContent = "Adding Liquidity";
+        document.getElementById('txStatusBody').textContent = "Please wait while we add your liquidity...";
+        document.getElementById('txLink').style.display = 'none';
+        modal.show();
+        
+        // Approve token spending
+        await approveToken(tokenA, config.contractAddress, amountAWei);
+        await approveToken(tokenB, config.contractAddress, amountBWei);
+        
+        // Add liquidity
+        const tx = await dexContract.addLiquidity(
+            tokenA, 
+            tokenB, 
+            amountAWei, 
+            amountBWei,
+            { gasLimit: 500000 } // Add manual gas limit to prevent estimation issues
+        );
+        
+        // Update modal with tx hash
+        document.getElementById('txStatusBody').innerHTML = `
+            Liquidity addition submitted!<br>
+            Transaction hash: ${tx.hash}<br>
+            Waiting for confirmation...
+        `;
+        document.getElementById('txLink').href = `${config.explorerUrl}/tx/${tx.hash}`;
+        document.getElementById('txLink').style.display = 'inline-block';
+        
+        // Wait for confirmation
+        const receipt = await tx.wait();
+        
+        // Update modal with success
+        document.getElementById('txStatusBody').innerHTML = `
+            Liquidity added successfully!<br>
+            Transaction hash: <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash}</a>
+        `;
+        
+        // Reset form
+        document.getElementById('addAmountA').value = '';
+        document.getElementById('addAmountB').value = '';
+        document.getElementById('addPoolShare').textContent = '-';
+        
+    } catch (error) {
+        console.error("Error adding liquidity:", error);
+        showTxStatus("Error", "Failed to add liquidity: " + (error.reason || error.message));
+    }
+}
 
         // Update remove liquidity information
         async function updateRemoveLiquidity() {
@@ -859,6 +879,23 @@
             document.getElementById('txLink').style.display = 'none';
             modal.show();
         }
+        // Add this helper function to check and approve token spending
+async function approveToken(tokenAddress, spender, amount) {
+    const tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
+    
+    // Check current allowance
+    const currentAllowance = await tokenContract.allowance(connectedAddress, spender);
+    if (currentAllowance.gte(amount)) {
+        return; // Already approved enough
+    }
+    
+    // Show approval status
+    showTxStatus("Approval Needed", "Please approve token spending...");
+    
+    // Execute approval
+    const approveTx = await tokenContract.approve(spender, amount);
+    await approveTx.wait();
+}
     </script>
 </body>
 </html>
